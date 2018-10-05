@@ -1,0 +1,9 @@
+ - server:
+     id: service-lexer-website-01
+
+ - bucket:
+     id: lexer-website-backup
+
+ - bucket:
+     id: lexer-service-website-elb
+
