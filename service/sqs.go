@@ -24,17 +24,24 @@ func (s SQS) Process(serv *[]Service, resources []string, b []byte) {
 		cleanStr := strings.Replace(v, ".", "\\.", -1)
 
 		id := fmt.Sprintf("modules.0.resources.%v.primary.attributes.tags\\.Name", cleanStr)
-		//itype := fmt.Sprintf("modules.0.resources.%v.primary.attributes.instance_type", cleanStr)
 		resultID := gjson.Get(string(b), id)
 
-		// resultType := gjson.Get(string(b), itype)
+		for _, v := range s.Conditions() {
+			server := SQSMap{}
 
-		server := SQSMap{}
-		server.Details.ID = resultID.String()
-		server.Details.Alert = "below 5 queue"
-		server.Details.Duration = 15
+			if v.MonitorType == "alert" {
+				server.Details.Alert = v.MonitorMessage
+			} else {
+				server.Details.Warn = v.MonitorMessage
+			}
 
-		*serv = append(*serv, server)
+			server.Details.ID = resultID.String()
+			server.Details.Duration = v.MonitorDuration
+
+			*serv = append(*serv, server)
+
+		}
+
 	}
 }
 
