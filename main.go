@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -44,9 +43,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if len(resourceMap["aws_instance"]) > 0 {
-		processServices(resourceMap)
-	}
+	processServices(resourceMap)
 }
 
 func getListOfResources() (map[string][]string, error) {
@@ -101,13 +98,11 @@ func processServices(resourceMap map[string][]string) error {
 		return err
 	}
 
-	// err = ioutil.WriteFile("mapgo.yml", b2, 0777)
+	err = ioutil.WriteFile("mapgo.yml", b2, 0777)
 
-	// if err != nil {
-	// 	return err
-	// }
-
-	fmt.Println(string(b2))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
