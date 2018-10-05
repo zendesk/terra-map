@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -9,30 +8,22 @@ import (
 	"path"
 	"strings"
 
-	"github.com/shoukoo/terra-map/service"
+	"github.com/shoukoo/terra-map/resource"
 	"gopkg.in/yaml.v2"
 )
 
 var dir string
 var validResource = []string{"aws_instance", "aws_s3_bucket", "aws_sqs_queue"}
 
-func init() {
-	flag.StringVar(&dir, "d", "", "specify a dir path to generate a map.yml")
-	flag.Parse()
-}
-
 func main() {
-
-	if dir == "" {
-		log.Fatalf("Provide a dir path e.g. -d=/home/andy/ops/ ")
+	if len(os.Args) != 2 {
+		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
-
-	//check if terraform.tfstate exists in this folder
+	dir := os.Args[1]
 	if _, err := os.Stat(path.Join(dir, "terraform.tfstate")); err != nil {
 		log.Fatal(err)
 	}
 
-	//cd to that dir
 	err := os.Chdir(dir)
 	if err != nil {
 		log.Fatal(err)
@@ -43,7 +34,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	b, err := processServices(resourceMap)
+	b, err := processResources(resourceMap)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +67,7 @@ func getListOfResources() (map[string][]string, error) {
 	return resourceMap, nil
 }
 
-func processServices(resourceMap map[string][]string) ([]byte, error) {
+func processResources(resourceMap map[string][]string) ([]byte, error) {
 
 	b, err := ioutil.ReadFile(path.Join(dir, "terraform.tfstate"))
 	if err != nil {
