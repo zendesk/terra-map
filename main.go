@@ -43,7 +43,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = processServices(resourceMap)
+	b, err := processServices(resourceMap)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = appendDateToMap(b)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,11 +76,11 @@ func getListOfResources() (map[string][]string, error) {
 	return resourceMap, nil
 }
 
-func processServices(resourceMap map[string][]string) error {
+func processServices(resourceMap map[string][]string) ([]byte, error) {
 
 	b, err := ioutil.ReadFile(path.Join(dir, "terraform.tfstate"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var servers = []service.Service{}
@@ -97,12 +102,34 @@ func processServices(resourceMap map[string][]string) error {
 
 	b2, err := yaml.Marshal(servers)
 	if err != nil {
+		return nil, err
+	}
+
+	return b2, nil
+}
+
+func appendDateToMap(b []byte) error {
+
+	fileName := path.Join(dir, "map.yml")
+
+	if _, err := os.Stat(path.Join(fileName)); err != nil {
 		return err
 	}
 
-	//We can changhe the file name later...
-	err = ioutil.WriteFile("terra_map.yml", b2, 0777)
+	cmd := exec.Command("bash", "-c", "sed -i '/# automatically created alerts below this/q' "+fileName)
+	_, err := cmd.CombinedOutput()
 	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	if _, err = f.WriteString(string(b)); err != nil {
 		return err
 	}
 
