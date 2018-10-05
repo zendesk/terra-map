@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -8,12 +9,22 @@ import (
 	"path"
 	"strings"
 
-	"github.com/shoukoo/terra-map/resource"
 	"gopkg.in/yaml.v2"
 )
 
 var dir string
-var validResource = []string{"aws_instance", "aws_s3_bucket", "aws_sqs_queue"}
+
+type Resource interface {
+	Process(resource []string, b []byte) []interface{}
+	Conditions() []Condition
+}
+
+type Condition struct {
+	ID       string `yaml:"id"`
+	Alert    string `yaml:"alert,omitempty"`
+	Warn     string `yaml:"warn,omitempty"`
+	Duration int    `yaml:"duration"`
+}
 
 func main() {
 	if len(os.Args) != 2 {
@@ -29,100 +40,39 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resourceMap, err := getListOfResources()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	b, err := processResources(resourceMap)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = appendDateToMap(b)
-	if err != nil {
-		log.Fatal(err)
-	}
+	resourceMap := getResources()
+	fmt.Print(string(processResources(resourceMap)))
 }
 
-func getListOfResources() (map[string][]string, error) {
-
-	resourceMap := make(map[string][]string)
-
+func getResources() []string {
 	cmd := exec.Command("bash", "-c", "terraform show | grep -E '^[a-zA-Z]' | tr -d ':'")
 	b, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
+	}
+	return strings.Split(string(b), "\n")
+}
+
+func processResources(resourceMap []string) []byte {
+	b, err := ioutil.ReadFile(path.Join(dir, "terraform.tfstate"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	splitOutput := strings.Split(string(b), "\n")
-	for _, v := range splitOutput {
-		for _, r := range validResource {
-			if strings.Contains(v, r) {
-				resourceMap[r] = append(resourceMap[r], v)
-			}
+	var conditions []interface{}
+	for _, resource := range resourceMap {
+		if strings.Contains(resource, "aws_instance") {
+			thing := Server{}
+			conditions = append(conditions, thing.Process(resource, b)...)
+		} else if strings.Contains(resource, "aws_sqs_queue") {
+			thing := SQS{}
+			conditions = append(conditions, thing.Process(resource, b)...)
 		}
 	}
 
-	return resourceMap, nil
-}
-
-func processResources(resourceMap map[string][]string) ([]byte, error) {
-
-	b, err := ioutil.ReadFile(path.Join(dir, "terraform.tfstate"))
+	b2, err := yaml.Marshal(conditions)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
-
-	var servers = []service.Service{}
-
-	if len(resourceMap["aws_instance"]) > 0 {
-		server := service.Server{}
-		server.Process(&servers, resourceMap["aws_instance"], b)
-	}
-
-	if len(resourceMap["aws_sqs_queue"]) > 0 {
-		sqs := service.SQS{}
-		sqs.Process(&servers, resourceMap["aws_sqs_queue"], b)
-	}
-
-	if len(resourceMap["aws_s3_bucket"]) > 0 {
-		sqs := service.SQS{}
-		sqs.Process(&servers, resourceMap["aws_s3_bucket"], b)
-	}
-
-	b2, err := yaml.Marshal(servers)
-	if err != nil {
-		return nil, err
-	}
-
-	return b2, nil
-}
-
-func appendDateToMap(b []byte) error {
-
-	fileName := path.Join(dir, "map.yml")
-
-	if _, err := os.Stat(path.Join(fileName)); err != nil {
-		return err
-	}
-
-	cmd := exec.Command("bash", "-c", "sed -i '/# automatically created alerts below this/q' "+fileName)
-	_, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	if _, err = f.WriteString(string(b)); err != nil {
-		return err
-	}
-
-	return nil
+	return b2
 }
