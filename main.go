@@ -43,7 +43,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	processServices(resourceMap)
+	err = processServices(resourceMap)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func getListOfResources() (map[string][]string, error) {
@@ -93,13 +96,12 @@ func processServices(resourceMap map[string][]string) error {
 	}
 
 	b2, err := yaml.Marshal(servers)
-
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile("mapgo.yml", b2, 0777)
-
+	//We can changhe the file name later...
+	err = ioutil.WriteFile("terra_map.yml", b2, 0777)
 	if err != nil {
 		return err
 	}

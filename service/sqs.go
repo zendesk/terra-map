@@ -39,7 +39,6 @@ func (s SQS) Process(serv *[]Service, resources []string, b []byte) {
 			server.Details.Duration = v.MonitorDuration
 
 			*serv = append(*serv, server)
-
 		}
 
 	}

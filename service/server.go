@@ -30,8 +30,6 @@ func (s Server) Process(serv *[]Service, resources []string, b []byte) {
 
 		for _, v := range s.Conditions() {
 
-			//check if
-
 			if strings.Contains(v.MonitorMessage, "credit") {
 				if !strings.Contains(resultType.String(), "T2") ||
 					!strings.Contains(resultType.String(), "T3") {
@@ -70,7 +68,7 @@ func (s Server) Conditions() []Condition {
 		},
 		Condition{
 			MonitorType:     "creidt",
-			MonitorMessage:  "above 15 credit",
+			MonitorMessage:  "below 15 credit",
 			MonitorDuration: 30,
 		},
 		Condition{
