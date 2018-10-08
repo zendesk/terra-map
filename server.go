@@ -29,7 +29,7 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 	var resultType gjson.Result
 	if resultType = gjson.Get(string(b), itype); resultType.String() == "" {
 		//Module uses different path to get the data
-		itype = fmt.Sprintf("modules.0.resources.%v.primary.attributes.instance_type", cleanStr)
+		itype = fmt.Sprintf("modules.1.resources.%v.primary.attributes.instance_type", cleanStr)
 		resultType = gjson.Get(string(b), id)
 	}
 
