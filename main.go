@@ -40,8 +40,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resourceMap := getResources()
-	fmt.Print(string(processResources(resourceMap)))
+	resources := getResources()
+	fmt.Print(string(processResources(resources)))
 }
 
 func getResources() []string {
@@ -53,14 +53,14 @@ func getResources() []string {
 	return strings.Split(string(b), "\n")
 }
 
-func processResources(resourceMap []string) []byte {
+func processResources(resources []string) (b2 []byte) {
 	b, err := ioutil.ReadFile(path.Join(dir, "terraform.tfstate"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var conditions []interface{}
-	for _, resource := range resourceMap {
+	for _, resource := range resources {
 		if strings.Contains(resource, "aws_instance") {
 			thing := Server{}
 			conditions = append(conditions, thing.Process(resource, b)...)
@@ -70,9 +70,11 @@ func processResources(resourceMap []string) []byte {
 		}
 	}
 
-	b2, err := yaml.Marshal(conditions)
-	if err != nil {
-		log.Fatal(err)
+	if len(conditions) > 0 {
+		b2, err = yaml.Marshal(conditions)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return b2
 }
