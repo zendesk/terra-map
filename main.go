@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -40,17 +41,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resources := getResources()
+	resources := getResources(dir)
 	fmt.Print(string(processResources(resources)))
 }
 
-func getResources() []string {
+func getResources(dir string) []string {
 	cmd := exec.Command("bash", "-c", "terraform show | grep -E '^[a-zA-Z]' | tr -d ':'")
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.Split(string(b), "\n")
+
+	//If repo has module then filter the name
+	filteredName := strings.Replace(string(b), "module."+filepath.Base(dir)+".", "", -1)
+	return strings.Split(filteredName, "\n")
 }
 
 func processResources(resources []string) (b2 []byte) {

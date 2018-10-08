@@ -18,8 +18,20 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 
 	id := fmt.Sprintf("modules.0.resources.%v.primary.attributes.tags\\.Name", cleanStr)
 	itype := fmt.Sprintf("modules.0.resources.%v.primary.attributes.instance_type", cleanStr)
-	resultID := gjson.Get(string(b), id)
-	resultType := gjson.Get(string(b), itype)
+
+	var resultID gjson.Result
+	if resultID = gjson.Get(string(b), id); resultID.String() == "" {
+		//Module uses different path to get the data
+		id := fmt.Sprintf("modules.1.resources.%v.primary.attributes.tags\\.Name", cleanStr)
+		resultID = gjson.Get(string(b), id)
+	}
+
+	var resultType gjson.Result
+	if resultType = gjson.Get(string(b), itype); resultType.String() == "" {
+		//Module uses different path to get the data
+		itype = fmt.Sprintf("modules.0.resources.%v.primary.attributes.instance_type", cleanStr)
+		resultType = gjson.Get(string(b), id)
+	}
 
 	for _, v := range s.Conditions() {
 		if strings.Contains(v.Alert, "credit") {
