@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-
-	"github.com/tidwall/gjson"
 )
 
 type ServerCondition struct {
@@ -14,48 +12,25 @@ type ServerCondition struct {
 type Server struct{}
 
 func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
-	cleanStr := strings.Replace(resource, ".", "\\.", -1)
+	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
+	name := queryJson(b, prefix+"primary.attributes.tags\\.Name")
+	alert := queryJson(b, prefix+"primary.attributes.tags\\.alert")
+	instance := queryJson(b, prefix+"primary.attributes.instance_type")
 
-	id := fmt.Sprintf("modules.0.resources.%v.primary.attributes.tags\\.Name", cleanStr)
-	itype := fmt.Sprintf("modules.0.resources.%v.primary.attributes.instance_type", cleanStr)
-	alertTag := fmt.Sprintf("modules.0.resources.%v.primary.attributes.alert", cleanStr)
-
-	var resultID gjson.Result
-	if resultID = gjson.Get(string(b), id); resultID.String() == "" {
-		//Module uses different path to get the data
-		id := fmt.Sprintf("modules.1.resources.%v.primary.attributes.tags\\.Name", cleanStr)
-		resultID = gjson.Get(string(b), id)
+	if alert == "manual" {
+		return
 	}
 
-	var resultType gjson.Result
-	if resultType = gjson.Get(string(b), itype); resultType.String() == "" {
-		//Module uses different path to get the data
-		itype = fmt.Sprintf("modules.1.resources.%v.primary.attributes.instance_type", cleanStr)
-		resultType = gjson.Get(string(b), id)
-	}
-
-	var resultAlert gjson.Result
-	if resultAlert = gjson.Get(string(b), alertTag); resultAlert.String() == "" {
-		//Module uses different path to get the data
-		alertTag = fmt.Sprintf("modules.1.resources.%v.primary.attributes.alert", cleanStr)
-		resultAlert = gjson.Get(string(b), alertTag)
-	}
-
-	if resultAlert.String() == "" {
-		for _, v := range s.Conditions() {
-			if strings.Contains(v.Alert, "credit") {
-				if !strings.Contains(resultType.String(), "t2") &&
-					!strings.Contains(resultType.String(), "t3") {
-					continue
-				}
-			}
-			m := ServerCondition{}
-			m.Details.Alert = v.Alert
-			m.Details.Warn = v.Warn
-			m.Details.ID = resultID.String()
-			m.Details.Duration = v.Duration
-			alerts = append(alerts, m)
+	for _, v := range s.Conditions() {
+		if strings.Contains(v.Alert, "credit") && (!strings.Contains(instance, "t2") && !strings.Contains(instance, "t3")) {
+			continue
 		}
+		m := ServerCondition{}
+		m.Details.Alert = v.Alert
+		m.Details.Warn = v.Warn
+		m.Details.ID = name
+		m.Details.Duration = v.Duration
+		alerts = append(alerts, m)
 	}
 	return alerts
 }
