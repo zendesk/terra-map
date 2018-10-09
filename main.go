@@ -21,11 +21,12 @@ type Resource interface {
 }
 
 type Condition struct {
-	ID       string `yaml:"id"`
-	Alert    string `yaml:"alert,omitempty"`
-	Warn     string `yaml:"warn,omitempty"`
-	Pattern  string `yaml:"-"`
-	Duration int    `yaml:"duration"`
+	ID        string `yaml:"id"`
+	Alert     string `yaml:"alert,omitempty"`
+	Warn      string `yaml:"warn,omitempty"`
+	Match     string `yaml:"-"`
+	DontMatch string `yaml:"-"`
+	Duration  int    `yaml:"duration"`
 }
 
 func main() {
@@ -81,25 +82,6 @@ func processResources(resources []string) (b2 []byte) {
 			log.Fatal(err)
 		}
 	}
+
 	return b2
-}
-
-func processPattern(str string, pattern string) bool {
-	s := strings.Split(strings.TrimSpace(pattern), " ")
-
-	if len(s) != 2 {
-		log.Fatalln("Not enough parameters")
-	}
-
-	var match bool
-	switch s[0] {
-	case "equal":
-		match = strings.Contains(str, s[1])
-	case "not":
-		match = !strings.Contains(str, s[1])
-	default:
-		log.Fatalf("%v invalid operator\n", s[0])
-	}
-
-	return match
 }
