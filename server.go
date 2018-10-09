@@ -40,7 +40,10 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 				continue
 			}
 		}
-
+		if (v.Match != "" && !strings.Contains(resultID.String(), v.Match)) ||
+			(v.DontMatch != "" && strings.Contains(resultID.String(), v.DontMatch)) {
+			continue
+		}
 		m := ServerCondition{}
 		m.Details.Alert = v.Alert
 		m.Details.Warn = v.Warn
