@@ -40,13 +40,14 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 				continue
 			}
 		}
-
-		m := ServerCondition{}
-		m.Details.Alert = v.Alert
-		m.Details.Warn = v.Warn
-		m.Details.ID = resultID.String()
-		m.Details.Duration = v.Duration
-		alerts = append(alerts, m)
+		if v.Pattern == "" || (v.Pattern != "" && processPattern(resultID.String(), v.Pattern)) {
+			m := ServerCondition{}
+			m.Details.Alert = v.Alert
+			m.Details.Warn = v.Warn
+			m.Details.ID = resultID.String()
+			m.Details.Duration = v.Duration
+			alerts = append(alerts, m)
+		}
 	}
 	return alerts
 }

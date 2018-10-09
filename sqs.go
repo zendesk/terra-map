@@ -26,12 +26,16 @@ func (s SQS) Process(resource string, b []byte) (alerts []interface{}) {
 	}
 
 	for _, v := range s.Conditions() {
-		m := SQSCondition{}
-		m.Details.Alert = v.Alert
-		m.Details.Warn = v.Warn
-		m.Details.ID = resultID.String()
-		m.Details.Duration = v.Duration
-		alerts = append(alerts, m)
+
+		if v.Pattern == "" || (v.Pattern != "" && processPattern(resultID.String(), v.Pattern)) {
+			m := SQSCondition{}
+			m.Details.Alert = v.Alert
+			m.Details.Warn = v.Warn
+			m.Details.ID = resultID.String()
+			m.Details.Duration = v.Duration
+			alerts = append(alerts, m)
+		}
+
 	}
 	return alerts
 }
@@ -40,7 +44,13 @@ func (s SQS) Conditions() []Condition {
 	return []Condition{
 		Condition{
 			Alert:    "above 5000 visible",
+			Pattern:  "not dead",
 			Duration: 60,
+		},
+		Condition{
+			Alert:    "above 10 visible",
+			Pattern:  "equal dead",
+			Duration: 30,
 		},
 		Condition{
 			Alert:    "below 20 sent",
