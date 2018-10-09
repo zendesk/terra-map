@@ -37,7 +37,6 @@ func (s SQS) Process(resource string, b []byte) (alerts []interface{}) {
 		m.Details.ID = resultID.String()
 		m.Details.Duration = v.Duration
 		alerts = append(alerts, m)
-
 	}
 	return alerts
 }
