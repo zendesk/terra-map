@@ -21,12 +21,10 @@ type Resource interface {
 }
 
 type Condition struct {
-	ID        string `yaml:"id"`
-	Alert     string `yaml:"alert,omitempty"`
-	Warn      string `yaml:"warn,omitempty"`
-	Match     string `yaml:"-"`
-	DontMatch string `yaml:"-"`
-	Duration  int    `yaml:"duration"`
+	ID       string `yaml:"id"`
+	Alert    string `yaml:"alert,omitempty"`
+	Warn     string `yaml:"warn,omitempty"`
+	Duration int    `yaml:"duration"`
 }
 
 func main() {

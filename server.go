@@ -18,6 +18,7 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 
 	id := fmt.Sprintf("modules.0.resources.%v.primary.attributes.tags\\.Name", cleanStr)
 	itype := fmt.Sprintf("modules.0.resources.%v.primary.attributes.instance_type", cleanStr)
+	alertTag := fmt.Sprintf("modules.0.resources.%v.primary.attributes.alert", cleanStr)
 
 	var resultID gjson.Result
 	if resultID = gjson.Get(string(b), id); resultID.String() == "" {
@@ -33,24 +34,30 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 		resultType = gjson.Get(string(b), id)
 	}
 
-	for _, v := range s.Conditions() {
-		if strings.Contains(v.Alert, "credit") {
-			if !strings.Contains(resultType.String(), "t2") &&
-				!strings.Contains(resultType.String(), "t3") {
-				continue
-			}
-		}
-		if (v.Match != "" && !strings.Contains(resultID.String(), v.Match)) ||
-			(v.DontMatch != "" && strings.Contains(resultID.String(), v.DontMatch)) {
-			continue
-		}
-		m := ServerCondition{}
-		m.Details.Alert = v.Alert
-		m.Details.Warn = v.Warn
-		m.Details.ID = resultID.String()
-		m.Details.Duration = v.Duration
-		alerts = append(alerts, m)
+	var resultAlert gjson.Result
+	if resultAlert = gjson.Get(string(b), alertTag); resultAlert.String() == "" {
+		//Module uses different path to get the data
+		alertTag = fmt.Sprintf("modules.1.resources.%v.primary.attributes.alert", cleanStr)
+		resultAlert = gjson.Get(string(b), alertTag)
 	}
+
+	if resultAlert.String() == "" {
+		for _, v := range s.Conditions() {
+			if strings.Contains(v.Alert, "credit") {
+				if !strings.Contains(resultType.String(), "t2") &&
+					!strings.Contains(resultType.String(), "t3") {
+					continue
+				}
+			}
+			m := ServerCondition{}
+			m.Details.Alert = v.Alert
+			m.Details.Warn = v.Warn
+			m.Details.ID = resultID.String()
+			m.Details.Duration = v.Duration
+			alerts = append(alerts, m)
+		}
+	}
+
 	return alerts
 }
 
