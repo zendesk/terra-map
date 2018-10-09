@@ -57,7 +57,6 @@ func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
 			alerts = append(alerts, m)
 		}
 	}
-
 	return alerts
 }
 
