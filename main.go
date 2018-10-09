@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v2"
 )
 
@@ -43,6 +44,13 @@ func main() {
 
 	resources := getResources(dir)
 	fmt.Print(string(processResources(resources)))
+}
+
+func queryJson(b []byte, search string) (val string) {
+	if result := gjson.Get(string(b), search).Array(); len(result) > 0 {
+		val = result[0].String()
+	}
+	return val
 }
 
 func getResources(dir string) []string {
