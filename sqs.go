@@ -29,13 +29,14 @@ func (s SQS) Process(resource string, b []byte) (alerts []interface{}) {
 
 		if (v.Match != "" && strings.Contains(resultID.String(), v.Match)) ||
 			(v.DontMatch != "" && !strings.Contains(resultID.String(), v.DontMatch)) {
-			m := SQSCondition{}
-			m.Details.Alert = v.Alert
-			m.Details.Warn = v.Warn
-			m.Details.ID = resultID.String()
-			m.Details.Duration = v.Duration
-			alerts = append(alerts, m)
+			continue
 		}
+		m := SQSCondition{}
+		m.Details.Alert = v.Alert
+		m.Details.Warn = v.Warn
+		m.Details.ID = resultID.String()
+		m.Details.Duration = v.Duration
+		alerts = append(alerts, m)
 
 	}
 	return alerts
