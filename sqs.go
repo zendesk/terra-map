@@ -27,8 +27,8 @@ func (s SQS) Process(resource string, b []byte) (alerts []interface{}) {
 
 	for _, v := range s.Conditions() {
 
-		if (v.Match != "" && strings.Contains(resultID.String(), v.Match)) ||
-			(v.DontMatch != "" && !strings.Contains(resultID.String(), v.DontMatch)) {
+		if (v.Match != "" && !strings.Contains(resultID.String(), v.Match)) ||
+			(v.DontMatch != "" && strings.Contains(resultID.String(), v.DontMatch)) {
 			continue
 		}
 		m := SQSCondition{}
