@@ -5,9 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path"
-	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -36,58 +35,52 @@ func main() {
 	if _, err := os.Stat(path.Join(dir, "terraform.tfstate")); err != nil {
 		log.Fatal(err)
 	}
-
-	err := os.Chdir(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	resources := getResources(dir)
-	fmt.Print(string(processResources(resources)))
-}
-
-func queryJson(b []byte, search string) (val string) {
-	if result := gjson.Get(string(b), search).Array(); len(result) > 0 {
-		val = result[0].String()
-	}
-	return val
-}
-
-func getResources(dir string) []string {
-	cmd := exec.Command("bash", "-c", "terraform show | grep -E '^[a-zA-Z]' | tr -d ':'")
-	b, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//If repo has module then filter the name
-	filteredName := strings.Replace(string(b), "module."+filepath.Base(dir)+".", "", -1)
-	return strings.Split(filteredName, "\n")
-}
-
-func processResources(resources []string) (b2 []byte) {
 	b, err := ioutil.ReadFile(path.Join(dir, "terraform.tfstate"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	resources := getResources(string(b))
+	fmt.Print(string(processResources(string(b), resources)))
+}
+
+func queryJson(state string, search string) (val string) {
+	if result := gjson.Get(state, search).Array(); len(result) > 0 {
+		val = result[0].String()
+	}
+	return val
+}
+
+func getResources(state string) (resources []string) {
+	if result := gjson.Get(state, "modules.#.resources").Array(); len(result) > 0 {
+		for _, v := range result {
+			for k, _ := range v.Map() {
+				resources = append(resources, k)
+			}
+		}
+	}
+	sort.Strings(resources)
+	return resources
+}
+
+func processResources(state string, resources []string) (b2 []byte) {
 	var conditions []interface{}
 	for _, resource := range resources {
 		if strings.Contains(resource, "aws_instance") {
 			thing := Server{}
-			conditions = append(conditions, thing.Process(resource, b)...)
+			conditions = append(conditions, thing.Process(state, resource)...)
 		} else if strings.Contains(resource, "aws_sqs_queue") {
 			thing := SQS{}
-			conditions = append(conditions, thing.Process(resource, b)...)
+			conditions = append(conditions, thing.Process(state, resource)...)
 		}
 	}
-
 	if len(conditions) > 0 {
-		b2, err = yaml.Marshal(conditions)
+		b2, err := yaml.Marshal(conditions)
 		if err != nil {
 			log.Fatal(err)
+		} else {
+			return b2
 		}
 	}
-
 	return b2
 }

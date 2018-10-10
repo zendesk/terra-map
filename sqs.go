@@ -11,10 +11,10 @@ type SQSCondition struct {
 
 type SQS struct{}
 
-func (s SQS) Process(resource string, b []byte) (alerts []interface{}) {
+func (s SQS) Process(state string, resource string) (alerts []interface{}) {
 	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
-	name := queryJson(b, prefix+"primary.attributes.name")
-	alert := queryJson(b, prefix+"primary.attributes.tags\\.alert")
+	name := queryJson(state, prefix+"primary.attributes.name")
+	alert := queryJson(state, prefix+"primary.attributes.tags\\.alert")
 
 	if alert == "manual" {
 		return

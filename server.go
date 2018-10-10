@@ -11,11 +11,11 @@ type ServerCondition struct {
 
 type Server struct{}
 
-func (s Server) Process(resource string, b []byte) (alerts []interface{}) {
+func (s Server) Process(state string, resource string) (alerts []interface{}) {
 	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
-	name := queryJson(b, prefix+"primary.attributes.tags\\.Name")
-	alert := queryJson(b, prefix+"primary.attributes.tags\\.alert")
-	instance := queryJson(b, prefix+"primary.attributes.instance_type")
+	name := queryJson(state, prefix+"primary.attributes.tags\\.Name")
+	alert := queryJson(state, prefix+"primary.attributes.tags\\.alert")
+	instance := queryJson(state, prefix+"primary.attributes.instance_type")
 
 	if alert == "manual" {
 		return
