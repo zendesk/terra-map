@@ -37,9 +37,5 @@ func (s SQS) Conditions() []Condition {
 			Alert:    "above 5000 visible",
 			Duration: 60,
 		},
-		Condition{
-			Alert:    "below 20 sent",
-			Duration: 60,
-		},
 	}
 }
