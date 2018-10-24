@@ -20,6 +20,8 @@ func (s App) Process(state string, resource string, options ...interface{}) (ale
 		services = options[0].([]string)
 	}
 
+	fmt.Println(services)
+
 	for _, service := range services {
 		for _, v := range s.Conditions() {
 			m := AppCondition{}

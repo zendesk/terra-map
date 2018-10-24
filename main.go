@@ -42,7 +42,7 @@ func main() {
 	if len(os.Args) != 2 {
 		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
-	dir := os.Args[1]
+	dir = os.Args[1]
 	if _, err := os.Stat(path.Join(dir, "terraform.tfstate")); err != nil {
 		log.Fatal(err)
 	}
