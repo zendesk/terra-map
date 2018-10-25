@@ -16,7 +16,7 @@ import (
 var dir string
 
 type Resource interface {
-	Process(resource []string, b []byte, options ...interface{}) []interface{}
+	Process(resource []string, b []byte) []interface{}
 	Conditions() []Condition
 }
 
@@ -26,16 +26,6 @@ type Condition struct {
 	Alert    string `yaml:"alert,omitempty"`
 	Warn     string `yaml:"warn,omitempty"`
 	Duration int    `yaml:"duration"`
-}
-
-type DockerCompose struct {
-	Version  string               `yaml:"version"`
-	Services map[string]Container `yaml:"services"`
-}
-
-type Container struct {
-	ContainerName string `yaml:"container_name"`
-	Image         string `yaml:"image"`
 }
 
 func main() {
@@ -52,9 +42,8 @@ func main() {
 	}
 
 	resources := getResources(string(b))
-	services := getServices()
 
-	fmt.Print(string(processResources(string(b), resources, services)))
+	fmt.Print(string(processResources(string(b), resources)))
 }
 
 func queryJson(state string, search string) (val string) {
@@ -62,27 +51,6 @@ func queryJson(state string, search string) (val string) {
 		val = result[0].String()
 	}
 	return val
-}
-
-func getServices() []string {
-	var services []string
-
-	dc, err := ioutil.ReadFile(path.Join(dir, "docker-compose.yml"))
-	if err != nil {
-		return services
-	}
-
-	structure := DockerCompose{}
-	err = yaml.Unmarshal(dc, &structure)
-	if err != nil {
-		return services
-	}
-
-	for key := range structure.Services {
-		services = append(services, key)
-	}
-
-	return services
 }
 
 func getResources(state string) (resources []string) {
@@ -97,7 +65,7 @@ func getResources(state string) (resources []string) {
 	return resources
 }
 
-func processResources(state string, resources []string, services []string) (b2 []byte) {
+func processResources(state string, resources []string) (b2 []byte) {
 
 	var conditions []interface{}
 	for _, resource := range resources {
@@ -107,7 +75,7 @@ func processResources(state string, resources []string, services []string) (b2 [
 			conditions = append(conditions, server.Process(state, resource)...)
 
 			app := App{}
-			conditions = append(conditions, app.Process(state, resource, services)...)
+			conditions = append(conditions, app.Process(state, resource)...)
 
 		} else if strings.Contains(resource, "aws_sqs_queue") {
 			sqs := SQS{}

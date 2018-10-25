@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path"
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 type AppCondition struct {
@@ -11,16 +15,42 @@ type AppCondition struct {
 
 type App struct{}
 
-func (s App) Process(state string, resource string, options ...interface{}) (alerts []interface{}) {
+type DockerCompose struct {
+	Version  string               `yaml:"version"`
+	Services map[string]Container `yaml:"services"`
+}
+
+type Container struct {
+	ContainerName string `yaml:"container_name"`
+	Image         string `yaml:"image"`
+}
+
+func getServices() []string {
+	var services []string
+
+	dc, err := ioutil.ReadFile(path.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		return services
+	}
+
+	structure := DockerCompose{}
+	err = yaml.Unmarshal(dc, &structure)
+	if err != nil {
+		return services
+	}
+
+	for key := range structure.Services {
+		services = append(services, key)
+	}
+
+	return services
+}
+
+func (s App) Process(state string, resource string) (alerts []interface{}) {
 	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
 	name := queryJson(state, prefix+"primary.attributes.tags\\.Name")
 
-	var services []string
-	if len(options) > 0 {
-		services = options[0].([]string)
-	}
-
-	fmt.Println(services)
+	services := getServices()
 
 	for _, service := range services {
 		for _, v := range s.Conditions() {
