@@ -16,13 +16,11 @@ type AppCondition struct {
 type App struct{}
 
 type DockerCompose struct {
-	Version  string               `yaml:"version"`
-	Services map[string]Container `yaml:"services"`
-}
-
-type Container struct {
-	ContainerName string `yaml:"container_name"`
-	Image         string `yaml:"image"`
+	Version  string `yaml:"version"`
+	Services map[string]struct {
+		ContainerName string `yaml:"container_name"`
+		Image         string `yaml:"image"`
+	} `yaml:"services"`
 }
 
 func getServices() []string {

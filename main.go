@@ -20,7 +20,7 @@ type Resource interface {
 	Conditions() []Condition
 }
 
-//Condition alert conditions
+// Condition alert conditions
 type Condition struct {
 	ID       string `yaml:"id"`
 	Alert    string `yaml:"alert,omitempty"`
@@ -42,7 +42,6 @@ func main() {
 	}
 
 	resources := getResources(string(b))
-
 	fmt.Print(string(processResources(string(b), resources)))
 }
 
@@ -66,7 +65,6 @@ func getResources(state string) (resources []string) {
 }
 
 func processResources(state string, resources []string) (b2 []byte) {
-
 	var conditions []interface{}
 	for _, resource := range resources {
 		if strings.Contains(resource, "aws_instance") {
