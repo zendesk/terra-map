@@ -20,6 +20,7 @@ type Resource interface {
 	Conditions() []Condition
 }
 
+// Condition alert conditions
 type Condition struct {
 	ID       string `yaml:"id"`
 	Alert    string `yaml:"alert,omitempty"`
@@ -31,7 +32,7 @@ func main() {
 	if len(os.Args) != 2 {
 		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
-	dir := os.Args[1]
+	dir = os.Args[1]
 	if _, err := os.Stat(path.Join(dir, "terraform.tfstate")); err != nil {
 		log.Fatal(err)
 	}
@@ -67,13 +68,19 @@ func processResources(state string, resources []string) (b2 []byte) {
 	var conditions []interface{}
 	for _, resource := range resources {
 		if strings.Contains(resource, "aws_instance") {
-			thing := Server{}
-			conditions = append(conditions, thing.Process(state, resource)...)
+
+			server := Server{}
+			conditions = append(conditions, server.Process(state, resource)...)
+
+			app := App{}
+			conditions = append(conditions, app.Process(state, resource)...)
+
 		} else if strings.Contains(resource, "aws_sqs_queue") {
-			thing := SQS{}
-			conditions = append(conditions, thing.Process(state, resource)...)
+			sqs := SQS{}
+			conditions = append(conditions, sqs.Process(state, resource)...)
 		}
 	}
+
 	if len(conditions) > 0 {
 		b2, err := yaml.Marshal(conditions)
 		if err != nil {
