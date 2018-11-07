@@ -71,7 +71,7 @@ func (s App) Process(state string, resource string) (alerts []interface{}) {
 func (s App) Conditions() []Condition {
 	return []Condition{
 		Condition{
-			Alert:    "below 5 pulse",
+			Warn:     "below 5 pulse",
 			Duration: 30,
 		},
 	}
