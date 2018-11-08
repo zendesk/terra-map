@@ -18,8 +18,9 @@ type App struct{}
 type DockerCompose struct {
 	Version  string `yaml:"version"`
 	Services map[string]struct {
-		ContainerName string `yaml:"container_name"`
-		Image         string `yaml:"image"`
+		ContainerName string            `yaml:"container_name"`
+		Image         string            `yaml:"image"`
+		Labels        map[string]string `yaml:"labels"`
 	} `yaml:"services"`
 }
 
@@ -38,6 +39,9 @@ func getServices() []string {
 	}
 
 	for key := range structure.Services {
+		if structure.Services[key].Labels["alert"] == "manual" {
+			continue
+		}
 		services = append(services, key)
 	}
 
@@ -67,7 +71,7 @@ func (s App) Process(state string, resource string) (alerts []interface{}) {
 func (s App) Conditions() []Condition {
 	return []Condition{
 		Condition{
-			Alert:    "below 5 pulse",
+			Warn:     "below 5 pulse",
 			Duration: 30,
 		},
 	}
