@@ -31,7 +31,7 @@ type Condition struct {
 func main() {
 
 	if len(os.Args) != 2 {
-		log.Println("Version: v2.0")
+		log.Println("Version: v2.1")
 		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
 
@@ -70,7 +70,7 @@ func getResources(state string) (resources []string) {
 func processResources(state string, resources []string) (b2 []byte) {
 	var conditions []interface{}
 	for _, resource := range resources {
-		if strings.Contains(resource, "aws_instance") {
+		if strings.HasPrefix(resource, "aws_instance") {
 
 			server := Server{}
 			conditions = append(conditions, server.Process(state, resource)...)
@@ -78,7 +78,7 @@ func processResources(state string, resources []string) (b2 []byte) {
 			app := App{}
 			conditions = append(conditions, app.Process(state, resource)...)
 
-		} else if strings.Contains(resource, "aws_sqs_queue") {
+		} else if strings.HasPrefix(resource, "aws_sqs_queue") {
 			sqs := SQS{}
 			conditions = append(conditions, sqs.Process(state, resource)...)
 		}
