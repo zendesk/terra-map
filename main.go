@@ -31,7 +31,7 @@ type Condition struct {
 func main() {
 
 	if len(os.Args) != 2 {
-		log.Println("Version: v2.1")
+		log.Println("Version: v2.2")
 		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
 
@@ -45,42 +45,45 @@ func main() {
 	}
 
 	resources := getResources(string(b))
-	fmt.Print(string(processResources(string(b), resources)))
-}
-
-func queryJson(state string, search string) (val string) {
-	if result := gjson.Get(state, search).Array(); len(result) > 0 {
-		val = result[0].String()
-	}
-	return val
+	fmt.Print(string(processResources(resources)))
 }
 
 func getResources(state string) (resources []string) {
 	if result := gjson.Get(state, "modules.#.resources").Array(); len(result) > 0 {
 		for _, v := range result {
-			for k, _ := range v.Map() {
-				resources = append(resources, k)
+
+			var keys []string
+			for k := range v.Map() {
+				keys = append(keys, k)
+			}
+
+			sort.Strings(keys)
+
+			for _, k := range keys {
+				// ignore all data resource
+				if !strings.HasPrefix(k, "data.") {
+					resources = append(resources, v.Map()[k].Raw)
+				}
 			}
 		}
 	}
-	sort.Strings(resources)
 	return resources
 }
 
-func processResources(state string, resources []string) (b2 []byte) {
+func processResources(resources []string) (b2 []byte) {
 	var conditions []interface{}
 	for _, resource := range resources {
-		if strings.HasPrefix(resource, "aws_instance") {
+		if gjson.Get(resource, "type").String() == "aws_instance" {
 
 			server := Server{}
-			conditions = append(conditions, server.Process(state, resource)...)
+			conditions = append(conditions, server.Process(resource)...)
 
 			app := App{}
-			conditions = append(conditions, app.Process(state, resource)...)
+			conditions = append(conditions, app.Process(resource)...)
 
-		} else if strings.HasPrefix(resource, "aws_sqs_queue") {
+		} else if gjson.Get(resource, "type").String() == "aws_sqs_queue" {
 			sqs := SQS{}
-			conditions = append(conditions, sqs.Process(state, resource)...)
+			conditions = append(conditions, sqs.Process(resource)...)
 		}
 	}
 

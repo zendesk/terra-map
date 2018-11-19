@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path"
-	"strings"
 
+	"github.com/tidwall/gjson"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -48,9 +47,8 @@ func getServices() []string {
 	return services
 }
 
-func (s App) Process(state string, resource string) (alerts []interface{}) {
-	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
-	name := queryJson(state, prefix+"primary.attributes.tags\\.Name")
+func (s App) Process(resource string) (alerts []interface{}) {
+	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
 
 	services := getServices()
 

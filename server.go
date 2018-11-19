@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/tidwall/gjson"
 )
 
 type ServerCondition struct {
@@ -11,11 +12,10 @@ type ServerCondition struct {
 
 type Server struct{}
 
-func (s Server) Process(state string, resource string) (alerts []interface{}) {
-	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
-	name := queryJson(state, prefix+"primary.attributes.tags\\.Name")
-	alert := queryJson(state, prefix+"primary.attributes.tags\\.alert")
-	instance := queryJson(state, prefix+"primary.attributes.instance_type")
+func (s Server) Process(resource string) (alerts []interface{}) {
+	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
+	alert := gjson.Get(resource, "primary.attributes.tags\\.alert").String()
+	instance := gjson.Get(resource, "primary.attributes.instance_type").String()
 
 	if alert == "manual" {
 		return
