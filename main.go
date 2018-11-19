@@ -51,15 +51,22 @@ func main() {
 func getResources(state string) (resources []string) {
 	if result := gjson.Get(state, "modules.#.resources").Array(); len(result) > 0 {
 		for _, v := range result {
-			for k, i := range v.Map() {
+
+			var keys []string
+			for k := range v.Map() {
+				keys = append(keys, k)
+			}
+
+			sort.Strings(keys)
+
+			for _, k := range keys {
 				// ignore all data resource
 				if !strings.HasPrefix(k, "data.") {
-					resources = append(resources, i.Raw)
+					resources = append(resources, v.Map()[k].Raw)
 				}
 			}
 		}
 	}
-	sort.Strings(resources)
 	return resources
 }
 
