@@ -68,7 +68,6 @@ func processResources(resources []string) (b2 []byte) {
 	for _, resource := range resources {
 		if gjson.Get(resource, "type").String() == "aws_instance" {
 
-			fmt.Println("There is a aws_instance")
 			server := Server{}
 			conditions = append(conditions, server.Process(resource)...)
 
