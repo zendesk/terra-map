@@ -1,9 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"strings"
-)
+import "github.com/tidwall/gjson"
 
 type SQSCondition struct {
 	Details Condition `yaml:"sqs"`
@@ -11,10 +8,9 @@ type SQSCondition struct {
 
 type SQS struct{}
 
-func (s SQS) Process(state string, resource string) (alerts []interface{}) {
-	prefix := fmt.Sprintf("modules.#.resources.%v.", strings.Replace(resource, ".", "\\.", -1))
-	name := queryJson(state, prefix+"primary.attributes.name")
-	alert := queryJson(state, prefix+"primary.attributes.tags\\.alert")
+func (s SQS) Process(resource string) (alerts []interface{}) {
+	name := gjson.Get(resource, "primary.attributes.name").String()
+	alert := gjson.Get(resource, "primary.attributes.tags\\.alert").String()
 
 	if alert == "manual" {
 		return
