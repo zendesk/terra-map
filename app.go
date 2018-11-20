@@ -42,7 +42,7 @@ func getServices() []string {
 		if structure.Services[key].Labels["alert"] == "manual" {
 			continue
 		}
-		services = append(services, key)
+		services = append(services, structure.Services[key].ContainerName)
 	}
 
 	return services
