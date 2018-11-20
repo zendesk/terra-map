@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"path"
+	"sort"
 
 	"github.com/tidwall/gjson"
 	yaml "gopkg.in/yaml.v2"
@@ -51,6 +52,7 @@ func (s App) Process(resource string) (alerts []interface{}) {
 	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
 
 	services := getServices()
+	sort.Strings(services)
 
 	for _, service := range services {
 		for _, v := range s.Conditions() {
