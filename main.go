@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -14,11 +15,6 @@ import (
 )
 
 var dir string
-
-type Resource interface {
-	Process(resource []string, b []byte) []interface{}
-	Conditions() []Condition
-}
 
 // Condition alert conditions
 type Condition struct {
@@ -31,7 +27,7 @@ type Condition struct {
 func main() {
 
 	if len(os.Args) != 2 {
-		log.Println("Version: v2.3")
+		log.Println("Version: v2.4")
 		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
 
@@ -84,6 +80,10 @@ func processResources(resources []string) (b2 []byte) {
 		} else if gjson.Get(resource, "type").String() == "aws_sqs_queue" {
 			sqs := SQS{}
 			conditions = append(conditions, sqs.Process(resource)...)
+		} else if gjson.Get(resource, "type").String() == "aws_db_instance" {
+			rds := RDS{}
+			fmt.Println(resource)
+			conditions = append(conditions, rds.Process(resource)...)
 		}
 	}
 
@@ -96,4 +96,13 @@ func processResources(resources []string) (b2 []byte) {
 		}
 	}
 	return b2
+}
+
+func parseCondition(conditon []string) (duration int, rule string, err error) {
+	duration, err = strconv.Atoi(strings.Join(conditon[len(conditon)-1:], " "))
+	if err != nil {
+		return 0, "", err
+	}
+	rule = strings.Join(conditon[:len(conditon)-2], " ")
+	return duration, rule, nil
 }
