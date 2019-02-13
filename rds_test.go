@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -14,15 +15,16 @@ var AWSDBExampleAlert = `
 		"local.terraform"
 	],
 	"primary": {
-		"id": "au-identity-equifax",
+		"id": "au-identity-test",
 		"attributes": {
-			"tags.Name": "au-identity-equifax",
-			"tags.alert": "below 10 pulse in 30: above 2000 pulse in 30",
+			"tags.Name": "au-identity-test",
+			"tags.alert": "below 10 pulse in 120",
+			"tags.alert2": "below 10 swap in 60",
+			"tags.alert3": "below 12 ram in 120",
 			"tags.function": "operations",
 			"tags.product": "identity",
-			"tags.role": "au-identity-equifax",
+			"tags.role": "au-identity-test",
 			"tags.service": "database",
-			"tags.terraform": "github.com/lexerdev/ops-infra/au-identity-equifax",
 		},
 		"meta": {
 			"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0": {
@@ -47,16 +49,17 @@ var AWSDBExampleWarn = `
 		"local.terraform"
 	],
 	"primary": {
-		"id": "au-identity-equifax",
+		"id": "au-identity-test",
 		"attributes": {
-			"tags.Name": "au-identity-equifax",
-			"tags.alert": "below 10 pulse in 30: above 2000 pulse in 30",
-			"tags.warn": "below 10 pulse in 30",
+			"tags.Name": "au-identity-test",
+			"tags.alert1": "below 10 pulse in 30",
+			"tags.warn1": "below 10 swap in 30",
+			"tags.warn2": "below 10 cpu in 60",
+			"tags.warn3": "below 10 disk in 120",
 			"tags.function": "operations",
 			"tags.product": "identity",
-			"tags.role": "au-identity-equifax",
+			"tags.role": "au-identity-test",
 			"tags.service": "database",
-			"tags.terraform": "github.com/lexerdev/ops-infra/au-identity-equifax",
 		},
 		"meta": {
 			"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0": {
@@ -75,39 +78,71 @@ var AWSDBExampleWarn = `
 func TestRDSProcess(t *testing.T) {
 	rds := RDS{}
 	test1 := rds.Process(AWSDBExampleAlert)
-	if len(test1) != 2 {
-		t.Errorf("Should get 2 alert conditions")
+	if len(test1) != 3 {
+		t.Errorf("Should get 3 alert conditions")
 	}
 
 	test2 := rds.Process(AWSDBExampleWarn)
-	if len(test2) != 3 {
-		t.Errorf("Should get 3 alert conditions")
+	if len(test2) != 4 {
+		t.Errorf("Should get 4 alert conditions")
 	}
 }
 
 func TestRDSParse(t *testing.T) {
+	//check alert
 	rds := RDS{}
 	rds.Type = "alert"
-	rds.AlertTag = "below 10 pulse in 30: above 2000 pulse in 30"
-	alerts, _ := rds.Parse(rds.AlertTag)
-	if len(alerts) != 2 {
-		t.Errorf("Should get 2 alert conditions")
+	tag := "below 10 pulse in 30"
+	alert, _ := rds.Parse(tag)
+
+	if reflect.TypeOf(alert).Name() != "RDSCondition" {
+		t.Errorf("Incorrect type %v, it should be %v", reflect.TypeOf(alert).Name(), "RDSCondition")
+	}
+
+	rdsSturc := alert.(RDSCondition)
+
+	if rdsSturc.Details.Duration != 30 {
+		t.Errorf("Incorrect duration %v it should be 30", rdsSturc.Details.Duration)
+	}
+
+	if rdsSturc.Details.Alert != "below 10 pulse" {
+		t.Errorf("Incorrect alert %v it should be \"below 10 pulse\"", rdsSturc.Details.Alert)
+	}
+
+	//check warn
+	rds = RDS{}
+	rds.Type = "warn"
+	tag = "below 50 pulse in 120"
+	alert, _ = rds.Parse(tag)
+
+	if reflect.TypeOf(alert).Name() != "RDSCondition" {
+		t.Errorf("Incorrect type %v, it should be %v", reflect.TypeOf(alert).Name(), "RDSCondition")
+	}
+
+	rdsSturc = alert.(RDSCondition)
+
+	if rdsSturc.Details.Duration != 120 {
+		t.Errorf("Incorrect duration %v it should be 30", rdsSturc.Details.Duration)
+	}
+
+	if rdsSturc.Details.Warn != "below 50 pulse" {
+		t.Errorf("Incorrect alert %v it should be \"below 10 pulse\"", rdsSturc.Details.Warn)
 	}
 
 	//Invalid tag
 	rds.Type = "alert"
-	rds.AlertTag = "below 10 pulse in as"
-	alerts, err := rds.Parse(rds.AlertTag)
-	if err != nil && err.Error() != "strconv.Atoi: parsing \"as\": invalid syntax" {
+	tag = "below 10 pulse in as"
+	_, err := rds.Parse(tag)
+	if err.Error() != "strconv.Atoi: parsing \"as\": invalid syntax" {
 		t.Errorf("Invalid Error type")
 	}
 
-	//Invalid character count
+	// Invalid character count
 	rds.Type = "alert"
-	rds.AlertTag = "below 10 pulse"
-	rds.Name = "identity-uk"
-	if err.Error() != fmt.Sprintf("%v alert condition needs to contain 5 characters", rds.AlertTag) {
-		t.Errorf("Invalid Error type")
+	tag = "below 10 pulse"
+	_, err = rds.Parse(tag)
+	if err.Error() != fmt.Sprintf("%v alert condition needs to contain 5 characters", tag) {
+		t.Errorf("Invalid Error type, should be %v", err.Error())
 	}
 
 }

@@ -82,7 +82,6 @@ func processResources(resources []string) (b2 []byte) {
 			conditions = append(conditions, sqs.Process(resource)...)
 		} else if gjson.Get(resource, "type").String() == "aws_db_instance" {
 			rds := RDS{}
-			fmt.Println(resource)
 			conditions = append(conditions, rds.Process(resource)...)
 		}
 	}
