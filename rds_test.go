@@ -141,7 +141,7 @@ func TestRDSParse(t *testing.T) {
 	rds.Type = "alert"
 	tag = "below 10 pulse"
 	_, err = rds.Parse(tag)
-	if err.Error() != fmt.Sprintf("%v alert condition needs to contain 5 characters", tag) {
+	if err.Error() != fmt.Sprintf("%v alert condition needs to contain 5 words", tag) {
 		t.Errorf("Invalid Error type, should be %v", err.Error())
 	}
 

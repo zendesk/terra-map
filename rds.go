@@ -62,6 +62,6 @@ func (s RDS) Parse(tag string) (alert interface{}, err error) {
 		m.Details.Duration = duration
 		return m, nil
 	} else {
-		return nil, fmt.Errorf("%v alert condition needs to contain 5 characters", tag)
+		return nil, fmt.Errorf("%v alert condition needs to contain 5 words", tag)
 	}
 }
