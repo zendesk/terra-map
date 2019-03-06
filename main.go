@@ -83,6 +83,9 @@ func processResources(resources []string) (b2 []byte) {
 		} else if gjson.Get(resource, "type").String() == "aws_lambda_function" {
 			lambda := Lambda{}
 			conditions = append(conditions, lambda.Process(resource)...)
+		} else if gjson.Get(resource, "type").String() == "aws_db_instance" {
+			rds := RDS{}
+			conditions = append(conditions, rds.Process(resource)...)
 		}
 	}
 
