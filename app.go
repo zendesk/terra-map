@@ -10,7 +10,7 @@ import (
 )
 
 type AppCondition struct {
-	Details Condition `yaml:"app"`
+	Details Condition `yaml:"pulse"`
 }
 
 type App struct{}
