@@ -27,7 +27,7 @@ type Condition struct {
 func main() {
 
 	if len(os.Args) != 2 {
-		log.Println("Version: v2.4")
+		log.Println("Version: v2.5.2")
 		log.Fatalf("Usage: %s DIR", os.Args[0])
 	}
 
