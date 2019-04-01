@@ -1,6 +1,10 @@
 package main
 
-import "github.com/tidwall/gjson"
+import (
+	"strings"
+
+	"github.com/tidwall/gjson"
+)
 
 type SQSCondition struct {
 	Details Condition `yaml:"sqs"`
@@ -9,29 +13,23 @@ type SQSCondition struct {
 type SQS struct{}
 
 func (s SQS) Process(resource string) (alerts []interface{}) {
-	name := gjson.Get(resource, "primary.attributes.name").String()
-	alert := gjson.Get(resource, "primary.attributes.tags\\.alert").String()
-
-	if alert == "manual" {
-		return
-	}
-
-	for _, v := range s.Conditions() {
+	attr := gjson.Get(resource, "primary.attributes")
+	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
+	attr.ForEach(func(key, value gjson.Result) bool {
 		m := SQSCondition{}
-		m.Details.Alert = v.Alert
-		m.Details.Warn = v.Warn
-		m.Details.ID = name
-		m.Details.Duration = v.Duration
-		alerts = append(alerts, m)
-	}
+		cs := strings.Fields(value.String())
+		if len(cs) == 5 {
+			duration, rule := parseCondition(cs)
+			if strings.Contains(key.String(), "tags.alert") {
+				m.Details.Alert = rule
+			} else if strings.Contains(key.String(), "tags.warn") {
+				m.Details.Warn = rule
+			}
+			m.Details.ID = name
+			m.Details.Duration = duration
+			alerts = append(alerts, m)
+		}
+		return true
+	})
 	return alerts
-}
-
-func (s SQS) Conditions() []Condition {
-	return []Condition{
-		Condition{
-			Alert:    "above 5000 visible",
-			Duration: 60,
-		},
-	}
 }

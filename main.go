@@ -92,6 +92,10 @@ func processResources(resources []string) (b2 []byte) {
 		}
 	}
 
+	sort.Slice(conditions, func(i, j int) bool {
+		return conditions[i].Details.ID < conditions[j].Details.ID
+	})
+
 	if len(conditions) > 0 {
 		b2, err := yaml.Marshal(conditions)
 		if err != nil {
@@ -103,11 +107,11 @@ func processResources(resources []string) (b2 []byte) {
 	return b2
 }
 
-func parseCondition(conditon []string) (duration int, rule string, err error) {
-	duration, err = strconv.Atoi(strings.Join(conditon[len(conditon)-1:], " "))
-	if err != nil {
-		return 0, "", err
+func parseCondition(condition []string) (duration int, rule string) {
+	duration, err := strconv.Atoi(strings.Join(condition[len(condition)-1:], " "))
+	if err == nil {
+		rule = strings.Join(condition[:len(condition)-2], " ")
+		return duration, rule
 	}
-	rule = strings.Join(conditon[:len(conditon)-2], " ")
-	return duration, rule, nil
+	return
 }

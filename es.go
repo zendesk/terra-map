@@ -48,10 +48,7 @@ func (s ES) Process(resource string) (alerts []interface{}) {
 func (s ES) Parse(tag string) (alert interface{}, err error) {
 	cs := strings.Fields(tag)
 	if len(cs) == 5 {
-		duration, rule, err := parseCondition(cs)
-		if err != nil {
-			return nil, err
-		}
+		duration, rule := parseCondition(cs)
 		m := ESCondition{}
 		if s.Type == "alert" {
 			m.Details.Alert = rule
