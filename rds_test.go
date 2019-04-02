@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -76,13 +75,12 @@ var AWSDBExampleWarn = `
 `
 
 func TestRDSProcess(t *testing.T) {
-	rds := RDS{}
-	test1 := rds.Process(AWSDBExampleAlert)
+	test1 := process(AWSDBExampleAlert, "rds")
 	if len(test1) != 3 {
 		t.Errorf("Should get 3 alert conditions")
 	}
 
-	test2 := rds.Process(AWSDBExampleWarn)
+	test2 := process(AWSDBExampleWarn, "rds")
 	if len(test2) != 4 {
 		t.Errorf("Should get 4 alert conditions")
 	}
@@ -90,59 +88,29 @@ func TestRDSProcess(t *testing.T) {
 
 func TestRDSParse(t *testing.T) {
 	//check alert
-	rds := RDS{}
-	rds.Type = "alert"
 	tag := "below 10 pulse in 30"
-	alert, _ := rds.Parse(tag)
+	duration, rule := parseCondition(strings.Fields(tag))
 
-	if reflect.TypeOf(alert).Name() != "RDSCondition" {
-		t.Errorf("Incorrect type %v, it should be %v", reflect.TypeOf(alert).Name(), "RDSCondition")
+	if duration != 30 {
+		t.Errorf("Incorrect duration %v it should be 30", duration)
 	}
 
-	rdsSturc := alert.(RDSCondition)
-
-	if rdsSturc.Details.Duration != 30 {
-		t.Errorf("Incorrect duration %v it should be 30", rdsSturc.Details.Duration)
-	}
-
-	if rdsSturc.Details.Alert != "below 10 pulse" {
-		t.Errorf("Incorrect alert %v it should be \"below 10 pulse\"", rdsSturc.Details.Alert)
-	}
-
-	//check warn
-	rds = RDS{}
-	rds.Type = "warn"
-	tag = "below 50 pulse in 120"
-	alert, _ = rds.Parse(tag)
-
-	if reflect.TypeOf(alert).Name() != "RDSCondition" {
-		t.Errorf("Incorrect type %v, it should be %v", reflect.TypeOf(alert).Name(), "RDSCondition")
-	}
-
-	rdsSturc = alert.(RDSCondition)
-
-	if rdsSturc.Details.Duration != 120 {
-		t.Errorf("Incorrect duration %v it should be 30", rdsSturc.Details.Duration)
-	}
-
-	if rdsSturc.Details.Warn != "below 50 pulse" {
-		t.Errorf("Incorrect alert %v it should be \"below 10 pulse\"", rdsSturc.Details.Warn)
+	if rule != "below 10 pulse" {
+		t.Errorf("Incorrect alert %v it should be \"below 10 pulse\"", rule)
 	}
 
 	//Invalid tag
-	rds.Type = "alert"
 	tag = "below 10 pulse in as"
-	_, err := rds.Parse(tag)
-	if err.Error() != "strconv.Atoi: parsing \"as\": invalid syntax" {
+	duration, rule = parseCondition(strings.Fields(tag))
+	if duration != 0 {
 		t.Errorf("Invalid Error type")
 	}
 
 	// Invalid character count
-	rds.Type = "alert"
 	tag = "below 10 pulse"
-	_, err = rds.Parse(tag)
-	if err.Error() != fmt.Sprintf("%v alert condition needs to contain 5 words", tag) {
-		t.Errorf("Invalid Error type, should be %v", err.Error())
+	duration, rule = parseCondition(strings.Fields(tag))
+	if rule != "" {
+		t.Errorf("Invalid rule count")
 	}
 
 }
