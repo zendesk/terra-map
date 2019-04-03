@@ -16,8 +16,7 @@ import (
 
 var dir string
 
-// Condition alert conditions
-type Condition struct {
+type condition map[string]struct {
 	ID       string `yaml:"id"`
 	Alert    string `yaml:"alert,omitempty"`
 	Warn     string `yaml:"warn,omitempty"`
@@ -25,13 +24,12 @@ type Condition struct {
 }
 
 func main() {
-
-	if len(os.Args) != 2 {
-		log.Println("Version: v2.5.2")
-		log.Fatalf("Usage: %s DIR", os.Args[0])
+	log.SetPrefix("terra-map v2.5.3 ")
+	if len(os.Args) > 1 {
+		dir = os.Args[1]
+	} else {
+		dir = "."
 	}
-
-	dir = os.Args[1]
 	if _, err := os.Stat(path.Join(dir, "terraform.tfstate")); err != nil {
 		log.Fatal(err)
 	}
@@ -66,48 +64,77 @@ func getResources(state string) (resources []string) {
 	return resources
 }
 
-func processResources(resources []string) (b2 []byte) {
-	var conditions []interface{}
+func processResources(resources []string) (b []byte) {
+	var conditions []condition
 	for _, resource := range resources {
 		if gjson.Get(resource, "type").String() == "aws_instance" {
+			conditions = append(conditions, process(resource, "server")...)
 
-			server := Server{}
-			conditions = append(conditions, server.Process(resource)...)
-
+			// special case where we need to parse a docker-compose.yml file
 			app := App{}
-			conditions = append(conditions, app.Process(resource)...)
+			conditions = append(conditions, app.process(resource)...)
 
 		} else if gjson.Get(resource, "type").String() == "aws_sqs_queue" {
-			sqs := SQS{}
-			conditions = append(conditions, sqs.Process(resource)...)
+			conditions = append(conditions, process(resource, "sqs")...)
+
 		} else if gjson.Get(resource, "type").String() == "aws_lambda_function" {
-			lambda := Lambda{}
-			conditions = append(conditions, lambda.Process(resource)...)
+			conditions = append(conditions, process(resource, "lambda")...)
+
 		} else if gjson.Get(resource, "type").String() == "aws_db_instance" {
-			rds := RDS{}
-			conditions = append(conditions, rds.Process(resource)...)
+			conditions = append(conditions, process(resource, "rds")...)
+
 		} else if gjson.Get(resource, "type").String() == "aws_ssm_parameter" {
-			es := ES{}
-			conditions = append(conditions, es.Process(resource)...)
+			conditions = append(conditions, process(resource, "es")...)
 		}
 	}
 
 	if len(conditions) > 0 {
-		b2, err := yaml.Marshal(conditions)
+		b, err := yaml.Marshal(conditions)
 		if err != nil {
 			log.Fatal(err)
 		} else {
-			return b2
+			return b
 		}
 	}
-	return b2
+	return
 }
 
-func parseCondition(conditon []string) (duration int, rule string, err error) {
-	duration, err = strconv.Atoi(strings.Join(conditon[len(conditon)-1:], " "))
-	if err != nil {
-		return 0, "", err
+func parseCondition(condition []string) (duration int, rule string) {
+	duration, err := strconv.Atoi(strings.Join(condition[len(condition)-1:], " "))
+	if err == nil {
+		rule = strings.Join(condition[:len(condition)-2], " ")
+		return duration, rule
 	}
-	rule = strings.Join(conditon[:len(conditon)-2], " ")
-	return duration, rule, nil
+	return
+}
+
+func process(resource string, thing string) (alerts []condition) {
+	attr := gjson.Get(resource, "primary.attributes")
+	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
+	if name == "" {
+		name = gjson.Get(resource, "primary.attributes.function_name").String()
+	}
+	if name == "" {
+		name = gjson.Get(resource, "primary.id").String()
+	}
+	if name == "" {
+		name = gjson.Get(resource, "primary.attributes.id").String()
+	}
+
+	alerts = []condition{}
+	attr.ForEach(func(key, value gjson.Result) bool {
+		cs := strings.Fields(value.String())
+		if len(cs) == 5 && strings.Contains(key.String(), "tags.alert") {
+			duration, rule := parseCondition(cs)
+			con := condition{thing: {ID: name, Alert: rule, Duration: duration}}
+			alerts = append(alerts, con)
+
+		} else if len(cs) == 5 && strings.Contains(key.String(), "tags.warn") {
+			duration, rule := parseCondition(cs)
+			con := condition{thing: {ID: name, Warn: rule, Duration: duration}}
+			alerts = append(alerts, con)
+		}
+		return true
+	})
+	return alerts
 }

@@ -9,12 +9,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type AppCondition struct {
-	Details Condition `yaml:"pulse"`
-}
-
+// App to model docker services
 type App struct{}
 
+// DockerCompose to model a docker-compose.yml file
 type DockerCompose struct {
 	Version  string `yaml:"version"`
 	Services map[string]struct {
@@ -48,31 +46,17 @@ func getServices() []string {
 	return services
 }
 
-func (s App) Process(resource string) (alerts []interface{}) {
+func (s App) process(resource string) (alerts []condition) {
 	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
 
 	services := getServices()
 	sort.Strings(services)
 
+	alerts = []condition{}
 	for _, service := range services {
-		for _, v := range s.Conditions() {
-			m := AppCondition{}
-			m.Details.Alert = v.Alert
-			m.Details.Warn = v.Warn
-			m.Details.ID = name + "/" + service
-			m.Details.Duration = v.Duration
-			alerts = append(alerts, m)
-		}
+		con := condition{"pulse": {ID: name + "/" + service, Alert: "", Warn: "below 5 pulse", Duration: 120}}
+		alerts = append(alerts, con)
 	}
 
 	return alerts
-}
-
-func (s App) Conditions() []Condition {
-	return []Condition{
-		Condition{
-			Warn:     "below 5 pulse",
-			Duration: 30,
-		},
-	}
 }
