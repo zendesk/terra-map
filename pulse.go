@@ -3,7 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"path"
-	"sort"
+	"strings"
 
 	"github.com/tidwall/gjson"
 	yaml "gopkg.in/yaml.v2"
@@ -22,40 +22,35 @@ type DockerCompose struct {
 	} `yaml:"services"`
 }
 
-func getServices() []string {
-	var services []string
+func (s Pulse) process(resource string) (alerts []condition) {
 
+	// get name of server
+	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
+
+	// examine docker-compose.yml for alert conditions defined in docker labels
 	dc, err := ioutil.ReadFile(path.Join(dir, "docker-compose.yml"))
 	if err != nil {
-		return services
+		return
 	}
 
 	structure := DockerCompose{}
 	err = yaml.Unmarshal(dc, &structure)
 	if err != nil {
-		return services
+		return
 	}
-
-	for key := range structure.Services {
-		if structure.Services[key].Labels["alert"] == "manual" {
-			continue
-		}
-		services = append(services, structure.Services[key].ContainerName)
-	}
-
-	return services
-}
-
-func (s Pulse) process(resource string) (alerts []condition) {
-	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
-
-	services := getServices()
-	sort.Strings(services)
 
 	alerts = []condition{}
-	for _, service := range services {
-		con := condition{"pulse": {ID: name + "/" + service, Alert: "", Warn: "below 5 pulse", Duration: 120}}
-		alerts = append(alerts, con)
+	for key := range structure.Services {
+		container := structure.Services[key].ContainerName
+		for k, v := range structure.Services[key].Labels {
+			if duration, rule := parseCondition(v); duration != 0 && rule != "" {
+				if strings.Contains(k, "alert") {
+					alerts = append(alerts, condition{"pulse": {ID: name + "/" + container, Alert: rule, Duration: duration}})
+				} else if strings.Contains(k, "warn") {
+					alerts = append(alerts, condition{"pulse": {ID: name + "/" + container, Warn: rule, Duration: duration}})
+				}
+			}
+		}
 	}
 
 	return alerts
