@@ -9,8 +9,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// App to model docker services
-type App struct{}
+// Pulse to model docker services
+type Pulse struct{}
 
 // DockerCompose to model a docker-compose.yml file
 type DockerCompose struct {
@@ -46,7 +46,7 @@ func getServices() []string {
 	return services
 }
 
-func (s App) process(resource string) (alerts []condition) {
+func (s Pulse) process(resource string) (alerts []condition) {
 	name := gjson.Get(resource, "primary.attributes.tags\\.Name").String()
 
 	services := getServices()

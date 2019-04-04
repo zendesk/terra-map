@@ -71,8 +71,8 @@ func processResources(resources []string) (b []byte) {
 			conditions = append(conditions, process(resource, "server")...)
 
 			// special case where we need to parse a docker-compose.yml file
-			app := App{}
-			conditions = append(conditions, app.process(resource)...)
+			pulse := Pulse{}
+			conditions = append(conditions, pulse.process(resource)...)
 
 		} else if gjson.Get(resource, "type").String() == "aws_sqs_queue" {
 			conditions = append(conditions, process(resource, "sqs")...)
