@@ -24,7 +24,7 @@ type condition map[string]struct {
 }
 
 func main() {
-	log.SetPrefix("terra-map v2.5.3 ")
+	log.SetPrefix("terra-map v2.5.5 ")
 	if len(os.Args) > 1 {
 		dir = os.Args[1]
 	} else {
