@@ -71,8 +71,8 @@ func processResources(resources []string) (b []byte) {
 			conditions = append(conditions, process(resource, "server")...)
 
 			// special case where we need to parse a docker-compose.yml file
-			app := App{}
-			conditions = append(conditions, app.process(resource)...)
+			pulse := Pulse{}
+			conditions = append(conditions, pulse.process(resource)...)
 
 		} else if gjson.Get(resource, "type").String() == "aws_sqs_queue" {
 			conditions = append(conditions, process(resource, "sqs")...)
@@ -99,11 +99,14 @@ func processResources(resources []string) (b []byte) {
 	return
 }
 
-func parseCondition(condition []string) (duration int, rule string) {
-	duration, err := strconv.Atoi(strings.Join(condition[len(condition)-1:], " "))
-	if err == nil {
-		rule = strings.Join(condition[:len(condition)-2], " ")
-		return duration, rule
+func parseCondition(condition string) (duration int, rule string) {
+	c := strings.Fields(condition)
+	if len(c) == 5 {
+		duration, err := strconv.Atoi(c[len(c)-1])
+		if err == nil {
+			rule = strings.Join(c[:len(c)-2], " ")
+			return duration, rule
+		}
 	}
 	return
 }
@@ -123,16 +126,13 @@ func process(resource string, thing string) (alerts []condition) {
 
 	alerts = []condition{}
 	attr.ForEach(func(key, value gjson.Result) bool {
-		cs := strings.Fields(value.String())
-		if len(cs) == 5 && strings.Contains(key.String(), "tags.alert") {
-			duration, rule := parseCondition(cs)
-			con := condition{thing: {ID: name, Alert: rule, Duration: duration}}
-			alerts = append(alerts, con)
+		if duration, rule := parseCondition(value.String()); duration != 0 && rule != "" {
+			if strings.Contains(key.String(), "tags.alert") {
+				alerts = append(alerts, condition{thing: {ID: name, Alert: rule, Duration: duration}})
 
-		} else if len(cs) == 5 && strings.Contains(key.String(), "tags.warn") {
-			duration, rule := parseCondition(cs)
-			con := condition{thing: {ID: name, Warn: rule, Duration: duration}}
-			alerts = append(alerts, con)
+			} else if strings.Contains(key.String(), "tags.warn") {
+				alerts = append(alerts, condition{thing: {ID: name, Warn: rule, Duration: duration}})
+			}
 		}
 		return true
 	})
