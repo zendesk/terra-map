@@ -1,2 +1,4 @@
 *.yml
 .env
+terra-map
+terraform*
